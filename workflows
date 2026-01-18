@@ -1,1 +1,546 @@
 
+{
+  "name": "Email automation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "q": "=in:inbox -from:me"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1104,
+        -16
+      ],
+      "id": "7d3aba2f-7074-4b34-a7a4-0b534c6e1932",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aac0lh3dQIwy3Zi3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an email security assistant trained to detect phishing, scams, and important messages.\n\nYour task is to classify the email into ONLY ONE category:\nSCAM, IMPORTANT, or NORMAL.\n\n=== SECURITY ANALYSIS RULES ===\nClassify as SCAM if ANY of the following are present:\n- Urgent or threatening language (e.g., \"act now\", \"account suspended\", \"verify immediately\")\n- Requests to click links, download attachments, or share OTP/passwords\n- Impersonation of banks, companies, colleges, government, or recruiters\n- Promises of jobs, internships, prizes, or money that seem unrealistic\n- Poor grammar combined with urgency or fear\n- Payment, refund, KYC, crypto, or investment requests\n\nClassify as IMPORTANT if:\n- Interview calls or selection emails\n- Exam, college, or university notifications\n- Bank, legal, or government alerts that do NOT ask for credentials\n- Deadline-related official communication\n\nClassify as NORMAL if:\n- Newsletters, promotions, updates, or casual emails\n- No urgency, no risk, no deadlines\n\n=== EMAIL CONTENT ===\nFrom: {{ $json.From }}\nSubject: {{ $json.Subject }}\nSnippet: {{ $json.body }}\n\n=== OUTPUT RULE ===\nRespond with ONLY ONE WORD in uppercase:\nSCAM\nIMPORTANT\nor\nNORMAL\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -656,
+        -16
+      ],
+      "id": "2f90256a-f28b-407d-87a6-400a105291c8",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -592,
+        208
+      ],
+      "id": "dabcb3eb-a9f7-4da7-821a-890d5ff28123",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "7Advv3airKVIj7yd",
+          "name": "n8n free OpenAI API credits"
+        }
+      },
+      "notes": "You are an email security and priority detection assistant.\n\nClassify the email into ONE category:\n- SCAM\n- IMPORTANT\n- NORMAL\n\nIMPORTANT emails include:\n• Interview calls\n• Exam or college notifications\n• Bank, government, or legal alerts\n• Deadline-related emails\n\nSCAM emails include:\n• Phishing attempts\n• Fake jobs or internships\n• Payment or OTP fraud\n• Account suspension threats\n• Crypto or investment scams\n\nReturn ONLY valid JSON in this exact format:\n{\n  \"category\": \"\",\n  \"riskScore\": 0,\n  \"urgency\": \"Low | Medium | High\",\n  \"scamType\": null,\n  \"reason\": \"\"\n}\n\nEmail details:\nSender: {{$json.from}}\nSender Domain: {{$json.senderDomain}}\nSubject: {{$json.subject}}\n\n"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1c963a6-14d6-450f-9fa1-613decde381d",
+              "name": "=From",
+              "value": "={{ $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "74666c51-489e-4b0f-80ae-46694f1339ec",
+              "name": "=Subject",
+              "value": "={{ $json.Subject }}",
+              "type": "string"
+            },
+            {
+              "id": "2171503e-ad32-413f-86ba-509d165db61f",
+              "name": "=body",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -880,
+        -16
+      ],
+      "id": "a1d89db5-f0f7-4494-ab00-5ec9d714f305",
+      "name": "Extract fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "76f86bcc-b826-464f-b890-a86359ebdd99",
+              "name": "=classification",
+              "value": "={{$json.text.trim().toUpperCase()}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -304,
+        -16
+      ],
+      "id": "6d5eebca-77bf-475c-a64f-13a9ecde63e5",
+      "name": "Map AI output"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e8a535ce-abc4-4646-a8e3-7ec300b6b25b",
+              "leftValue": "={{ $json.classification }}",
+              "rightValue": "SCAM",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -80,
+        -16
+      ],
+      "id": "bec5626b-47f3-4f83-952a-e10f3476ebc9",
+      "name": "Scam decision"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_8079408371704037140"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        -208
+      ],
+      "id": "683434c2-a50f-46af-8ab2-2f8546e8d136",
+      "name": "Label Scam",
+      "webhookId": "0fcab05f-4f6e-49f9-89e3-fb3df49c4a21",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aac0lh3dQIwy3Zi3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "twilio place holder",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:"
+            },
+            {
+              "name": "To",
+              "value": "whatsapp:+91"
+            },
+            {
+              "name": "Body",
+              "value": "=🚨 PHISHING EMAIL DETECTED\n\nFrom: \n{{ $('Extract fields').item.json.From }}\n\nSubject: \n{{ $('Extract fields').item.json.Subject }}\n\nbody: \n{{ $('Extract fields').item.json.body }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        368,
+        -112
+      ],
+      "id": "365c3883-fcb0-42d7-ba08-3d54e0f65905",
+      "name": "WhatsApp Scam alert",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "ii5naBNaNupXaADP",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d43271d1-9cb9-4598-bcb7-ffcaa86e21b3",
+              "leftValue": "={{ $json.classification }}",
+              "rightValue": "IMPORTANT",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        144,
+        176
+      ],
+      "id": "92d2f807-8b9d-4085-b4e8-de0d6f4bfc2a",
+      "name": "Important decision"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "IMPORTANT",
+          "STARRED"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        80
+      ],
+      "id": "e17716c2-fe3c-4617-ade2-ca9793b8c491",
+      "name": "Label Important",
+      "webhookId": "aa964900-3d63-4a3a-bd6e-47b7c8f341e8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aac0lh3dQIwy3Zi3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "twilio placeholder",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+"
+            },
+            {
+              "name": "To",
+              "value": "whatsapp:+91"
+            },
+            {
+              "name": "message",
+              "value": "=⭐ IMPORTANT EMAIL RECEIVED  \n\nFrom: {{$json.from}} \n\nSubject: {{$json.subject}} \n\nbody: {{$json.snippet}}  \n\nPlease check your inbox."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        592,
+        -16
+      ],
+      "id": "b3998e84-c0d6-40ac-9596-cc0124fcab92",
+      "name": "WhatsApp Important alert",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "ii5naBNaNupXaADP",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "Label_3777647278773645437"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        272
+      ],
+      "id": "77fc58a2-8154-4626-9b31-b4d33203ac24",
+      "name": "Label Normal",
+      "webhookId": "e0cda1ca-fd05-47c3-8905-849e3a6fea25",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aac0lh3dQIwy3Zi3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "removeLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "INBOX"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        -304
+      ],
+      "id": "1018751f-dd46-46e7-bda4-4490ed6e1636",
+      "name": "Move to scam",
+      "webhookId": "828b2e04-7ff5-4d14-86c9-5be3fc85b45d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aac0lh3dQIwy3Zi3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "removeLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "INBOX"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        176
+      ],
+      "id": "71ca036c-c5e6-4dff-b833-dddf2f179ff1",
+      "name": "move to important",
+      "webhookId": "828b2e04-7ff5-4d14-86c9-5be3fc85b45d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aac0lh3dQIwy3Zi3",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Map AI output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map AI output": {
+      "main": [
+        [
+          {
+            "node": "Scam decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scam decision": {
+      "main": [
+        [
+          {
+            "node": "Label Scam",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Important decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label Scam": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Scam alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Move to scam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Important decision": {
+      "main": [
+        [
+          {
+            "node": "Label Important",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Label Normal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label Important": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Important alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "move to important",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move to scam": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8db01be6-4cfc-40bb-b754-a04dc8d08b88",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fc6a7ab6945e9ec3a646b9cecf9454665f6b8fd74bb4380df8c2a775c5833424"
+  },
+  "id": "dYVMB1OG_pqe8czz0LvRL",
+  "tags": []
+}
