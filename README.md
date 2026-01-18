@@ -71,3 +71,61 @@ Decision Engine
 └── Archive
 
 
+---
+
+## 🔍 Design Decisions
+
+### 1. LLM-Based Classification
+Instead of keyword matching, the system uses an LLM to detect:
+- Social engineering
+- Urgency and fear tactics
+- Impersonation attempts
+- Fake job and internship scams
+
+This significantly improves phishing detection accuracy.
+
+---
+
+### 2. Output Normalization
+AI output is normalized using:
+
+
+This prevents hidden characters (like newlines) from breaking automation logic and ensures **deterministic decision-making**.
+
+---
+
+### 3. Deterministic Routing
+All decisions are handled using **IF nodes**, making the workflow:
+- Transparent
+- Debuggable
+- Easy to extend
+
+---
+
+### 4. Event-Driven Automation
+The system runs automatically on **new incoming emails**, without polling or manual triggers.
+
+---
+
+## 🛠️ Tech Stack
+
+- **n8n** – Low-code workflow automation
+- **LLMs** – Intelligent email classification
+- **Gmail API** – Email ingestion and labeling
+- **WhatsApp API (Twilio)** – Real-time notifications
+- **Hybrid AI + rule-based logic**
+
+---
+
+## 📁 Repository Structure
+
+ai-email-security-n8n/
+│
+├── workflows/
+│ └── email_security_workflow.json
+│
+├── docs/
+│ └── architecture.md
+│
+├── README.md
+└── .gitignore
