@@ -1,1 +1,113 @@
+# Architecture Overview
 
+This document explains the internal architecture of the AI-Powered Email Security Automation.
+
+---
+
+## Components
+
+### 1. Gmail Trigger
+- Listens for new incoming emails
+- Acts as the entry point for the workflow
+- Event-driven (no polling)
+
+---
+
+### 2. Data Extraction & Normalization
+Extracted fields:
+- Sender
+- Subject
+- Snippet (email preview)
+
+These fields are normalized before sending to the LLM.
+
+---
+
+### 3. LLM Classification Engine
+The LLM analyzes:
+- Language patterns
+- Urgency
+- Impersonation attempts
+- Social engineering signals
+
+Output:
+- SCAM
+- IMPORTANT
+- NORMAL
+
+---
+
+### 4. Output Normalization Layer
+AI output is sanitized using:
+- Whitespace trimming
+- Case normalization
+
+This ensures reliable automation decisions.
+
+---
+
+### 5. Decision Engine
+Conditional routing based on classification:
+- Scam → Security actions
+- Important → Priority handling
+- Normal → Inbox cleanup
+
+---
+
+### 6. Action Layer
+- Gmail labeling
+- Spam handling
+- WhatsApp notifications
+
+Each action is isolated into separate nodes for clarity and debugging.
+
+---
+
+## Reliability Considerations
+
+- AI output normalization prevents logic failures
+- Deterministic IF conditions ensure predictable routing
+- No credentials stored in workflow files
+
+---
+
+## Extensibility
+
+The architecture supports:
+- Additional classifications
+- Risk scoring
+- Dashboard integrations
+- Multi-channel notifications
+
+<BR> 
+
+Gmail Inbox
+│
+▼
+Gmail Trigger (New Email)
+│
+▼
+Extract & Normalize Email Data
+(from, subject, snippet)
+│
+▼
+LLM Classification
+(SCAM / IMPORTANT / NORMAL)
+│
+▼
+Normalize AI Output
+(trim + uppercase)
+│
+▼
+Decision Engine
+├── SCAM
+│ ├── Move to Spam
+│ └── WhatsApp Alert
+│
+├── IMPORTANT
+│ ├── Add Important Label
+│ └── WhatsApp Alert
+│
+└── NORMAL
+├── Add Normal Label
+└── Archive
